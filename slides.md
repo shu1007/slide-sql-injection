@@ -325,7 +325,7 @@ console.log(`pw=${result}`);
 
 <style>
   .shiki-container {
-    height: 40vh;
+    max-height: 400px;
     code {
       overflow: scroll;
     }
