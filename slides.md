@@ -9,6 +9,7 @@ class: "text-center"
 # https://sli.dev/custom/highlighters.html
 highlighter: shiki
 # some information about the slides, markdown enabled
+layout: intro
 info: |
     ## Slidev Starter Template
     Presentation slides for developers.
@@ -16,15 +17,15 @@ info: |
     Learn more at [Sli.dev](https://sli.dev)
 ---
 
-# SQL Injection
+# 楽しい SQL インジェクション
 
-<div class="pt-12">
-  <span @click="$slidev.nav.next" class="px-2 p-1 rounded cursor-pointer" hover="bg-white bg-opacity-10">
-    Press Space for next page <carbon:arrow-right class="inline"/>
+<div class="absolute bottom-10">
+  <span class="font-700">
+    2021/9/28 成ヶ澤 秀
   </span>
 </div>
 
-<a href="https://github.com/slidevjs/slidev" target="_blank" alt="GitHub"
+<a href="https://github.com/shu1007/slide-sql-injection" target="_blank" alt="GitHub"
   class="abs-br m-6 text-xl icon-btn opacity-50 !border-none !hover:text-white">
 <carbon-logo-github />
 </a>
@@ -35,9 +36,9 @@ The last comment block of each slide will be treated as slide notes. It will be 
 
 ---
 
-# SQL Injection とは?
+# SQL インジェクション とは?
 
-SQL Injection とは
+SQL インジェクション とは
 
 > SQL インジェクション（英: SQL Injection）とは、アプリケーションのセキュリティ上の不備を意図的に利用し、アプリケーションが想定しない SQL 文を実行させることにより、データベースシステムを不正に操作する攻撃方法のこと。また、その攻撃を可能とする脆弱性のことである。\[[Wikipedia](https://ja.wikipedia.org/wiki/SQLインジェクション)\]
 
@@ -45,7 +46,7 @@ SQL Injection とは
 
 # Load of SQLInjection
 
-SQL Injection をアドベンチャーゲームに見立てて遊べる Web サイト。
+SQL インジェクション をアドベンチャーゲームに見立てて遊べる Web サイト。
 
 https://los.rubiya.kr/
 
@@ -440,7 +441,7 @@ $stmt->execute();
 
 # まとめ
 
--   SQL Injection は不正に SQL を実行する攻撃手法
+-   SQL インジェクション は不正に SQL を実行する攻撃手法
 -   身近な問題で普段書いているコードでも起こりうる
 -   Prepared Statement は対策として効果的
 
